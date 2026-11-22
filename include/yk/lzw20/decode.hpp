@@ -58,36 +58,35 @@ template<options Opts = options{}, byte_like Byte = unsigned char, byte_input_ra
         return out;
       }
     }
-    if constexpr (has_control_codes) {
-      if (*code == detail::clear_code<Opts>) {
-        table.clear();
-        prev.reset();
-        continue;
-      }
-      if (*code == detail::eoi_code<Opts>) {
-        return out;
-      }
+    // plain ifs, not a continue inside if constexpr, which MSVC fails to constant-evaluate
+    if (has_control_codes && *code == detail::eoi_code<Opts>) {
+      return out;
     }
-    if (!prev) {
-      if (*code >= detail::literal_count<Opts>) {
-        throw decode_error("yk::lzw20::decode: the first code is not a literal");
-      }
+    if (has_control_codes && *code == detail::clear_code<Opts>) {
+      table.clear();
+      prev.reset();
     } else {
-      bool const can_add = table.next_code() < detail::max_codes<Opts>;
-      if (*code < table.next_code()) {
-        if (can_add) {
-          table.add(*prev, table.first_byte(*code));
+      if (!prev) {
+        if (*code >= detail::literal_count<Opts>) {
+          throw decode_error("yk::lzw20::decode: the first code is not a literal");
         }
-      } else if (*code == table.next_code() && can_add) {
-        // the string of prev followed by its own first byte, which the encoder
-        // assigned just before writing it
-        table.add(*prev, table.first_byte(*prev));
       } else {
-        throw decode_error("yk::lzw20::decode: a code is not in the dictionary yet");
+        bool const can_add = table.next_code() < detail::max_codes<Opts>;
+        if (*code < table.next_code()) {
+          if (can_add) {
+            table.add(*prev, table.first_byte(*code));
+          }
+        } else if (*code == table.next_code() && can_add) {
+          // the string of prev followed by its own first byte, which the encoder
+          // assigned just before writing it
+          table.add(*prev, table.first_byte(*prev));
+        } else {
+          throw decode_error("yk::lzw20::decode: a code is not in the dictionary yet");
+        }
       }
+      table.append_to(out, *code);
+      prev = *code;
     }
-    table.append_to(out, *code);
-    prev = *code;
   }
 }
 
