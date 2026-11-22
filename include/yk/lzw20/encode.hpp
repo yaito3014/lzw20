@@ -1,11 +1,12 @@
 #ifndef YK_LZW20_ENCODE_HPP
 #define YK_LZW20_ENCODE_HPP
 
-#include <yk/lzw20/byte.hpp>
 #include <yk/lzw20/detail/bit_io.hpp>
 #include <yk/lzw20/detail/encoder_table.hpp>
 #include <yk/lzw20/detail/format.hpp>
 #include <yk/lzw20/detail/to_array.hpp>
+
+#include <yk/lzw20/byte.hpp>
 #include <yk/lzw20/options.hpp>
 
 #include <concepts>

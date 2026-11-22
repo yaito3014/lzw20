@@ -1,8 +1,9 @@
 #ifndef YK_LZW20_DETAIL_DECODER_TABLE_HPP
 #define YK_LZW20_DETAIL_DECODER_TABLE_HPP
 
-#include <yk/lzw20/byte.hpp>
 #include <yk/lzw20/detail/format.hpp>
+
+#include <yk/lzw20/byte.hpp>
 
 #include <vector>
 
