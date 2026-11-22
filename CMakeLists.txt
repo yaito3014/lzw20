@@ -36,3 +36,28 @@ if(YK_LZW20_BUILD_TESTING)
   enable_testing()
   add_subdirectory(test)
 endif()
+
+option(YK_LZW20_INSTALL "generate install rules for lzw20" ${PROJECT_IS_TOP_LEVEL})
+
+if(YK_LZW20_INSTALL)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+
+  install(TARGETS lzw20 EXPORT lzw20_targets FILE_SET yk_lzw20_headers)
+  install(
+      EXPORT lzw20_targets
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lzw20
+      FILE lzw20-targets.cmake
+      NAMESPACE yk::
+  )
+
+  configure_package_config_file(
+      ${CMAKE_CURRENT_SOURCE_DIR}/cmake/lzw20-config.cmake.in
+      ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config.cmake
+      INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lzw20
+  )
+  install(
+      FILES ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config.cmake
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lzw20
+  )
+endif()
