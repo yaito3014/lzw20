@@ -14,7 +14,7 @@ if(YK_LZW20_BUILD_TESTING AND NOT DEFINED CMAKE_PROJECT_TOP_LEVEL_INCLUDES)
   set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/test/cmake/dependencies.cmake")
 endif()
 
-project(yk-lzw20 LANGUAGES CXX)
+project(yk-lzw20 VERSION 0.1.0 LANGUAGES CXX)
 
 add_library(lzw20 INTERFACE)
 add_library(yk::lzw20 ALIAS lzw20)
@@ -56,8 +56,16 @@ if(YK_LZW20_INSTALL)
       ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config.cmake
       INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lzw20
   )
+  # pre-1.0, a minor version may break the API
+  write_basic_package_version_file(
+      ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config-version.cmake
+      COMPATIBILITY SameMinorVersion
+      ARCH_INDEPENDENT
+  )
   install(
-      FILES ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config.cmake
+      FILES
+          ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/lzw20-config-version.cmake
       DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lzw20
   )
 endif()
