@@ -62,6 +62,46 @@ static_assert([] {
   return std::ranges::equal(lzw::decode<small>(lzw::encode<small>(input)), input);
 }());
 
+// the variant used by GIF: CLEAR and EOI codes, and the width grows once the last code assigned no longer fits
+constexpr lzw::options gif2{
+    .max_width = 12,
+    .order = lzw::bit_order::lsb_first,
+    .alphabet_width = 2,
+    .control = lzw::control_codes::clear_eoi,
+    .growth = lzw::code_growth::last_code,
+    .on_full = lzw::full_table::clear,
+};
+
+// quaternary_input(64) in test/codec.cpp, and its code stream from tools/gen_reference.py
+constexpr auto quaternary = [] {
+  std::array<unsigned char, 64> data{};
+  for (std::size_t i = 0; i < data.size(); ++i) {
+    data[i] = static_cast<unsigned char>((i * i + i / 3) % 4);
+  }
+  return data;
+}();
+constexpr std::array<unsigned char, 21> quaternary_gif2{0x44, 0x20, 0x21, 0x32, 0x02, 0x03, 0x0C, 0x52, 0xCC, 0x41, 0x99,
+                                                        0x56, 0x7B, 0xF1, 0xE4, 0xCA, 0x61, 0xD4, 0x76, 0x79, 0x05};
+
+static_assert(lzw::encode_array<gif2>([] { return quaternary; }) == quaternary_gif2);
+static_assert(lzw::decode_array<gif2>([] { return quaternary_gif2; }) == quaternary);
+
+// writes 12 CLEAR codes while constant-evaluated: one each time the dictionary fills, after the first
+static_assert([] {
+  constexpr lzw::options small_gif2{
+      .max_width = 4,
+      .alphabet_width = 2,
+      .control = lzw::control_codes::clear_eoi,
+      .growth = lzw::code_growth::last_code,
+      .on_full = lzw::full_table::clear,
+  };
+  std::array<unsigned char, 200> input{};
+  for (std::size_t i = 0; i < input.size(); ++i) {
+    input[i] = static_cast<unsigned char>((i * i + i / 7) % 4);
+  }
+  return std::ranges::equal(lzw::decode<small_gif2>(lzw::encode<small_gif2>(input)), input);
+}());
+
 }  // namespace
 
 TEST_CASE("compile-time results are usable at runtime", "[compile_time]")

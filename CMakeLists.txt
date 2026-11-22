@@ -14,7 +14,7 @@ if(YK_LZW20_BUILD_TESTING AND NOT DEFINED CMAKE_PROJECT_TOP_LEVEL_INCLUDES)
   set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/test/cmake/dependencies.cmake")
 endif()
 
-project(yk-lzw20 VERSION 0.1.0 LANGUAGES CXX)
+project(yk-lzw20 VERSION 0.2.0 LANGUAGES CXX)
 
 add_library(lzw20 INTERFACE)
 add_library(yk::lzw20 ALIAS lzw20)
