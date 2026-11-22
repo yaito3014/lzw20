@@ -1,0 +1,32 @@
+name: Test
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+    paths: &paths-to-detect
+      - "include/**/*"
+      - "tools/**/*"
+      - "test/**/*"
+      - "cmake/**/*"
+      - "CMakeLists.txt"
+      - ".github/workflows/**/*"
+  pull_request:
+    branches:
+      - main
+    paths: *paths-to-detect
+
+jobs:
+  test:
+    uses: yaito3014/cpp-ci/.github/workflows/cmake-test.yml@v0.1.0
+    with:
+      cxx-versions: "[20, 23, 26]"
+      cmake-args: -DYK_LZW20_CI=ON

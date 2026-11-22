@@ -1,5 +1,9 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 
+option(YK_LZW20_CI "for CI" OFF)
+
+set(CMAKE_COLOR_DIAGNOSTICS ${YK_LZW20_CI})
+
 function(yk_lzw20_add_test test_name)
   set(target_name yk_lzw20_${test_name}_test)
   add_executable(${target_name} ${test_name}.cpp)
