@@ -27,45 +27,64 @@ public:
   using std::runtime_error::runtime_error;
 };
 
-// Throws decode_error on a code the encoder cannot have written. During
-// constant evaluation the throw makes the expression non-constant, so malformed
-// input becomes a compile error.
+// Throws decode_error on a code the encoder cannot have written, or, with
+// control_codes::clear_eoi, on input that ends before EOI; the input after EOI
+// is not read. During constant evaluation the throw makes the expression
+// non-constant, so malformed input becomes a compile error.
 template<options Opts = options{}, byte_like Byte = unsigned char, byte_input_range R>
 [[nodiscard]] constexpr std::vector<Byte> decode(R&& input)
 {
-  static_assert(detail::valid_options<Opts>, "max_width must be in [9, 16]");
+  static_assert(
+      detail::valid_options<Opts>,
+      "alphabet_width must be in [1, 8] (at least 7 without control codes), max_width at most 16 with room for a dictionary code, "
+      "and full_table::clear needs control_codes::clear_eoi"
+  );
+  constexpr bool has_control_codes = Opts.control == control_codes::clear_eoi;
 
   std::vector<Byte> out;
   detail::bit_reader<Opts.order, std::ranges::iterator_t<R>, std::ranges::sentinel_t<R>> reader(std::ranges::begin(input), std::ranges::end(input));
-  detail::decoder_table table;
+  detail::decoder_table table(detail::first_free_code<Opts>);
 
-  std::optional<std::uint32_t> const first = reader.read(detail::code_width<Opts>(detail::first_free_code));
-  if (!first) {
-    return out;
-  }
-  if (*first >= detail::first_free_code) {
-    throw decode_error("yk::lzw20::decode: the first code is not a single byte");
-  }
-  table.append_to(out, *first);
-
-  for (std::uint32_t prev = *first;;) {
-    // the encoder assigns a code after each one it writes, so it was one code ahead
-    std::uint32_t const encoder_next = std::min(table.next_code() + 1, detail::max_codes<Opts>);
+  // the previous data code since the start or the last CLEAR
+  std::optional<std::uint32_t> prev;
+  for (;;) {
+    // the encoder assigns a code after each one it writes, so after the first it was one code ahead
+    std::uint32_t const encoder_next = prev ? std::min(table.next_code() + 1, detail::max_codes<Opts>) : table.next_code();
     std::optional<std::uint32_t> const code = reader.read(detail::code_width<Opts>(encoder_next));
     if (!code) {
-      return out;
-    }
-    bool const can_add = table.next_code() < detail::max_codes<Opts>;
-    if (*code < table.next_code()) {
-      if (can_add) {
-        table.add(prev, table.first_byte(*code));
+      if constexpr (has_control_codes) {
+        throw decode_error("yk::lzw20::decode: the input ends before EOI");
+      } else {
+        return out;
       }
-    } else if (*code == table.next_code() && can_add) {
-      // the string of prev followed by its own first byte, which the encoder
-      // assigned just before writing it
-      table.add(prev, table.first_byte(prev));
+    }
+    if constexpr (has_control_codes) {
+      if (*code == detail::clear_code<Opts>) {
+        table.clear();
+        prev.reset();
+        continue;
+      }
+      if (*code == detail::eoi_code<Opts>) {
+        return out;
+      }
+    }
+    if (!prev) {
+      if (*code >= detail::literal_count<Opts>) {
+        throw decode_error("yk::lzw20::decode: the first code is not a literal");
+      }
     } else {
-      throw decode_error("yk::lzw20::decode: a code is not in the dictionary yet");
+      bool const can_add = table.next_code() < detail::max_codes<Opts>;
+      if (*code < table.next_code()) {
+        if (can_add) {
+          table.add(*prev, table.first_byte(*code));
+        }
+      } else if (*code == table.next_code() && can_add) {
+        // the string of prev followed by its own first byte, which the encoder
+        // assigned just before writing it
+        table.add(*prev, table.first_byte(*prev));
+      } else {
+        throw decode_error("yk::lzw20::decode: a code is not in the dictionary yet");
+      }
     }
     table.append_to(out, *code);
     prev = *code;

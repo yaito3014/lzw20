@@ -37,6 +37,8 @@ public:
     ++size_;
   }
 
+  constexpr void clear() { *this = encoder_table(); }
+
 private:
   struct slot {
     std::uint32_t key;
